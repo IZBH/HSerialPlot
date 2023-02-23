@@ -1,3 +1,5 @@
+import struct
+
 
 class UartAnalyze:
     def __init__(self):
@@ -10,13 +12,12 @@ class UartAnalyze:
         self.frame_num = 0
         self.thread_start = False
         # 帧协议
-        self.frame = []
+        self.frame = bytearray(255)
         self.cmd_head = 0xAA
-        self.cmd_length = 132
-        self.byte_num = 0
-        self.half_word_num = 0
-        self.word_num = 32
         self.cmd_tail = 0x55
+        self.cmd_length = 11
+        self.format_style = None
+        self.frame_string = None
 
     def get_data(self, receive_data: bytearray):
         for data in receive_data:
@@ -74,108 +75,29 @@ class UartAnalyze:
             index = (i + self.data_head) % self.buffer_size
             data = self.uart_data[index]
             self.frame.append(data)
-
-        # 命令头，时间戳
-        index = 0
-        cmd_head = self.frame[0]
-        time_scale = (self.frame[1] << 8) + self.frame[2]
-        index += 3
-
-        # 8bit数据
-        for i in range(0, self.byte_num, 1):
-            byte_data = self.frame[index]
-            self.analyze_data_list[i].append(byte_data)
-            # print(byte_data)
-            index += 1
-
-        # 16bit数据
-        for i in range(0, self.half_word_num * 2, 2):
-            half_word_data = self.frame[index] + (self.frame[index + 1] << 8)
-            self.analyze_data_list[self.byte_num + i // 2].append(half_word_data)
-            # print(half_word_data)
-            index += 2
-
-        # 32bit数据
-        for i in range(0, self.word_num * 4, 4):
-            word_data = (self.frame[index] << 0) + (self.frame[index + 1] << 8) + (self.frame[index + 2] << 16) + \
-                        (self.frame[index + 3] << 24)
-            self.analyze_data_list[self.byte_num + self.half_word_num + i // 4].append(word_data)
-            # print(word_data)
-            index += 4
-        # print(self.analyze_data_list)
-        # just for test
-        # print(self.frame)
+        # 根据初始化的格式进行转换
+        data_tuple = struct.unpack(self.format_style, self.frame[3:-1])
+        # 将该帧数据放入对应的list
+        for i in range(len(data_tuple)):
+            data = data_tuple[i]
+            self.analyze_data_list[i].append(data)
+        # 回显解析的数据
+        self.frame_string = str(data_tuple)
 
 
 # just for test
 if __name__ == '__main__':
     uart_test = UartAnalyze()
-    uart_test.cmd_length = 11
-    uart_test.byte_num = 1
-    uart_test.half_word_num = 1
-    uart_test.word_num = 1
+    uart_test.format_style = '>' + 'b' + 'h' + 'i'
     tmp_data1 = bytearray([0xAA, 0xFF, 0xFF, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x03, 0x55])
     uart_test.get_data(tmp_data1)
     uart_test.uart_analyze()
-    #
+
     tmp_data2 = bytearray([0xAA, 0xFF, 0xFF, 0x02, 0x00, 0x03, 0x00, 0x00, 0x00, 0x04, 0x55])
     uart_test.get_data(tmp_data2)
     uart_test.uart_analyze()
-    #
+
     tmp_data2 = bytearray([0xAA, 0xFF, 0xFF, 0xFF, 0x00, 0x04, 0x00, 0x00, 0x00, 0x05, 0x55])
     uart_test.get_data(tmp_data2)
     uart_test.uart_analyze()
-
-    uart_test.cmd_length = 132
-    uart_test.byte_num = 0
-    uart_test.half_word_num = 0
-    uart_test.word_num = 32
-    tmp_data2 = bytearray([0xAA, 0XFF, 0xFF,
-                           0x00, 0x00, 0x00, 0x00,
-                           0x01, 0x00, 0x00, 0x00,
-                           0x02, 0x00, 0x00, 0x00,
-                           0x03, 0x00, 0x00, 0x00,
-                           0x04, 0x00, 0x00, 0x00,
-                           0x05, 0x00, 0x00, 0x00,
-                           0x06, 0x00, 0x00, 0x00,
-                           0x07, 0x00, 0x00, 0x00,
-                           0x08, 0x00, 0x00, 0x00,
-                           0x09, 0x00, 0x00, 0x00,
-                           0x0a, 0x00, 0x00, 0x00,
-                           0x0b, 0x00, 0x00, 0x00,
-                           0x0c, 0x00, 0x00, 0x00,
-                           0x0d, 0x00, 0x00, 0x00,
-                           0x0e, 0x00, 0x00, 0x00,
-                           0x0f, 0x00, 0x00, 0x00,
-                           0x10, 0x00, 0x00, 0x00,
-                           0x11, 0x00, 0x00, 0x00,
-                           0x12, 0x00, 0x00, 0x00,
-                           0x13, 0x00, 0x00, 0x00,
-                           0x14, 0x00, 0x00, 0x00,
-                           0x15, 0x00, 0x00, 0x00,
-                           0x16, 0x00, 0x00, 0x00,
-                           0x17, 0x00, 0x00, 0x00,
-                           0x18, 0x00, 0x00, 0x00,
-                           0x19, 0x00, 0x00, 0x00,
-                           0x1a, 0x00, 0x00, 0x00,
-                           0x1b, 0x00, 0x00, 0x00,
-                           0x1c, 0x00, 0x00, 0x00,
-                           0x1d, 0x00, 0x00, 0x00,
-                           0x1e, 0x00, 0x00, 0x00,
-                           0x1f, 0x00, 0x00, 0x00,
-                           0x55
-                           ])
-    uart_test.get_data(tmp_data2)
-    uart_test.uart_analyze()
-    # print(uart_test.analyze_data_list)
-
-    # value1_uint8 = np.array(uart_test.analyze_data_list[0], dtype=np.uint8)
-    # value1_int8 = np.array(uart_test.analyze_data_list[0], dtype=np.int8)
-    #
-    # # 浮点转换
-    # hex_value = 0xcd + (0xcc << 8) + (0xf6 << 16) + (0x42 << 24)
-    # print(hex_value)
-    # tmp = np.array([hex_value], dtype=np.uint32)
-    # print(tmp)
-    # tmp.dtype = np.float32
-    # print(tmp)
+    print(uart_test.analyze_data_list)
