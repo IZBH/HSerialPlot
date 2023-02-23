@@ -27,7 +27,7 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
         self.curve = []
         self.setupUi(self)
         self.setWindowTitle("HSerialPlot")
-        self.setWindowIcon(QIcon('icon.png'))
+        self.setWindowIcon(QIcon(r'D:\code\HSerialPlot\icon.png'))
         self.device_list = []
         self.serial = serial.Serial()
         # self.data = bytearray()
