@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QMainWindow, QMessageBox
 from PyQt5.QtGui import QIcon
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 
 from serial_plot_ui import Ui_MainWindow
 
@@ -47,6 +47,8 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
         self.config_graph()
         # 定时器用于绘图
         self.plot_timer = QTimer()
+        # 固定窗口大小
+        self.setFixedSize(1200, 700)
 
     def init(self):
         # 可用端口
@@ -66,7 +68,7 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
         stopbits = [str(stopbits) for stopbits in self.serial.STOPBITS]
         self.serial_stopbits_select_box.addItems(stopbits)
         # 设置自动清0行数
-        self.receive_text.document().setMaximumBlockCount(1000)
+        self.receive_text.document().setMaximumBlockCount(500)
         # 串口检测
         self.serial_detect_bt.clicked.connect(self.get_valid_serial)
         # 打开串口
@@ -106,6 +108,8 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
         # 默认十六进制收发
         self.hex_send.setChecked(True)
         self.hex_receive.setChecked(True)
+        # 默认小端
+        self.little_endian_radiobt.setChecked(True)
 
     # 计算一帧的长度
     def clc_frame_length(self):
@@ -148,7 +152,11 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
                 old_frame_num = uart_data.frame_num
 
         for i in range(32):
-            self.curve[i].setData(uart_data.analyze_data_list[i])
+            try:
+                self.curve[i].setData(uart_data.analyze_data_list[i])
+            except:
+                self.plot_timer.stop()
+                QMessageBox.critical(self, "定时器已关闭", "绘图出错")
 
         self.analyze_data_text.clear()
         self.analyze_data_text.setText(uart_data.frame_string)
@@ -163,12 +171,15 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
         u32_num = self.u32_num_spinBox.value()
         s32_num = self.s32_num_spinBox.value()
         f32_num = self.f32_num_spinBox.value()
-        # uart_data.format_style = [u8_num, s8_num, u16_num, s16_num, u32_num, s32_num, f32_num]
-        uart_data.format_style = '<' + \
-                                 'b' * s8_num + 'B' * u8_num + \
-                                 'h' * s16_num + 'H' * u16_num + \
-                                 'i' * s32_num + 'I' * u32_num + \
-                                 'f' * f32_num
+        endian = '<'
+        if self.little_endian_radiobt.isChecked():
+            endian = '<'
+        elif self.big_endian_radiobt.isChecked():
+            endian = '>'
+        uart_data.format_style = \
+            endian + 'b' * s8_num + 'B' * u8_num + 'h' * s16_num + 'H' * u16_num + 'i' * s32_num + "I" * u32_num + \
+            'f' * f32_num
+
         uart_data.cmd_length = self.frame_len_spinBox.value()
         cmd = int(self.cmd_edit.text(), 16)
         uart_data.cmd_head = cmd >> 8
@@ -339,6 +350,7 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
 
 
 if __name__ == '__main__':
+    QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
     app = QApplication(sys.argv)
     serial_plot = SerialPlot()
     serial_plot.show()

@@ -4,7 +4,7 @@ import struct
 class UartAnalyze:
     def __init__(self):
         # 串口解析
-        self.buffer_size = 1024 * 1024
+        self.buffer_size = 1024 * 1024 * 100
         self.uart_data = bytearray(self.buffer_size)
         self.analyze_data_list = [[] for i in range(32)]
         self.data_head = 0
