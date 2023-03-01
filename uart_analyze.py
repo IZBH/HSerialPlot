@@ -44,23 +44,21 @@ class UartAnalyze:
             # 命令头正确开始解析
             if cmd_head == self.cmd_head:
                 # 解析一帧数据
-                while True:
-                    cmd_length = self.get_buffer_length()
-                    # 缓存长度大于一帧数据的长度，开始进行判断
-                    if cmd_length >= self.cmd_length:
-                        # 判断帧结尾
-                        tail_index = (self.data_head + self.cmd_length - 1) % self.buffer_size
-                        cmd_tail = self.uart_data[tail_index]
-                        if cmd_tail == self.cmd_tail:
-                            self.analyze_data()
-                            self.frame_num += 1
-                            # 将帧头向后移动一帧
-                            self.data_head = (self.data_head + self.cmd_length) % self.buffer_size
-                        else:
-                            # 帧尾不符合,头向后移动
-                            self.data_head += 1
-                        # 一帧解析完毕，跳出循环
-                        break
+                cmd_length = self.get_buffer_length()
+                # 缓存长度大于一帧数据的长度，开始进行判断
+                if cmd_length >= self.cmd_length:
+                    # 判断帧结尾
+                    tail_index = (self.data_head + self.cmd_length - 1) % self.buffer_size
+                    cmd_tail = self.uart_data[tail_index]
+                    if cmd_tail == self.cmd_tail:
+                        self.analyze_data()
+                        self.frame_num += 1
+                        # 将帧头向后移动一帧
+                        self.data_head = (self.data_head + self.cmd_length) % self.buffer_size
+                    else:
+                        # 帧尾不符合,头向后移动
+                        self.data_head += 1
+                    # 一帧解析完毕，跳出循环
             # 命令头错误,头向后移动
             else:
                 self.data_head += 1
