@@ -37,6 +37,7 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
         self.received_data_num = 0
         self.x_start = 0
         self.x_end = 0
+        self.display_data = True
         self.read_thread = threading.Thread(target=self.read_uart, daemon=True)
         self.read_thread_alive = True
         self.init()
@@ -186,6 +187,7 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
         uart_data.cmd_tail = cmd & 0xFF
         self.plot_timer.start(10)
         self.plot_timer.timeout.connect(self.serial_graph_plot)
+        self.display_data = False
 
     def get_valid_serial(self):
         # 获取串口列表并添加
@@ -253,33 +255,34 @@ class SerialPlot(QMainWindow, Ui_MainWindow):
             else:
                 if data:
                     uart_data.get_data(data)
-                    locale_time = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
-                    try:
-                        # Hex 接收
-                        if self.hex_receive.isChecked():
-                            show_receive = "[%s]<-%s\n" % (locale_time, data.hex(' '))
-                            self.receive_text.insertPlainText(show_receive)
-
-                        # ASCII 接收
-                        else:
-                            data_ascii.extend(data)
-                            if data_ascii.endswith(b'\n'):
-                                show_receive = "[%s]<-%s" % (locale_time, data_ascii.decode("utf-8"))
-                                data_ascii.clear()
+                    if self.display_data:
+                        locale_time = datetime.utcnow().strftime('%H:%M:%S.%f')[:-3]
+                        try:
+                            # Hex 接收
+                            if self.hex_receive.isChecked():
+                                show_receive = "[%s]<-%s\n" % (locale_time, data.hex(' '))
                                 self.receive_text.insertPlainText(show_receive)
 
-                        # 移动光标至下一行
-                        text_cursor = self.receive_text.textCursor()
-                        text_cursor.movePosition(text_cursor.End)
-                        self.receive_text.setTextCursor(text_cursor)
-                        # 更新接收数据长度
-                        self.received_data_num += len(data)
-                        self.serial_receive_num_edit.setText(str(self.received_data_num))
-                        # 绘图
-                        # self.serial_graph_plot()
-                    except Exception as e:
-                        self.log_err = e.args[0]
-                        break
+                            # ASCII 接收
+                            else:
+                                data_ascii.extend(data)
+                                if data_ascii.endswith(b'\n'):
+                                    show_receive = "[%s]<-%s" % (locale_time, data_ascii.decode("utf-8"))
+                                    data_ascii.clear()
+                                    self.receive_text.insertPlainText(show_receive)
+
+                            # 移动光标至下一行
+                            text_cursor = self.receive_text.textCursor()
+                            text_cursor.movePosition(text_cursor.End)
+                            self.receive_text.setTextCursor(text_cursor)
+                            # 更新接收数据长度
+                            self.received_data_num += len(data)
+                            self.serial_receive_num_edit.setText(str(self.received_data_num))
+                            # 绘图
+                            # self.serial_graph_plot()
+                        except Exception as e:
+                            self.log_err = e.args[0]
+                            break
         self.read_thread_finish()
 
     def read_thread_start(self):
