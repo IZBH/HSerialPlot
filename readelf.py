@@ -14,7 +14,7 @@ def get_global_var(elf_file):
             continue
         for symbol in section.iter_symbols():
             if symbol['st_info']['type'] == 'STT_OBJECT' and symbol['st_info']['bind'] == 'STB_GLOBAL':
-                global_var[symbol.name] = [hex(symbol['st_value'])]
+                global_var[symbol.name] = [symbol['st_size'], hex(symbol['st_value'])]
     return global_var
 
 
@@ -35,17 +35,23 @@ def get_data_type(dwarf_info, elf_data: dict):
                 try:
                     name = DIE.attributes['DW_AT_name'].value.decode('utf-8')
                     if name in elf_data:
-                        # 获取地址时，使用 DW_AT_type 的偏移地址 + CU(编译单元的地址)
+                        # 获取地址时，使用 DW_AT_type 的偏移地址 + CU(编译单元的基地址)
                         addr = DIE.attributes['DW_AT_type'].value + CU.cu_offset
                         type_die = get_type_die(dwarf_info, addr)
                         data_type = type_die.attributes['DW_AT_name'].value.decode('utf-8')
                         # 避免重复添加类型
-                        if len(elf_data[name]) == 1:
-                            elf_data[name].append(data_type)
+                        if len(elf_data[name]) == 2:
+                            elf_data[name].insert(0, data_type)
                 # 忽略 DIE 不具有属性 DW_AT_name 导致的异常
                 except KeyError as e:
                     None
     return elf_data
+
+
+# 将字典写入json文件
+def dict2json(data_symbol: dict, path: str):
+    with open(path, 'w') as jsonfile:
+        json.dump(data_symbol, jsonfile, indent=4)
 
 
 with open('trace_read_symbol/test_mcu0.exe', 'rb') as f:
@@ -57,3 +63,4 @@ with open('trace_read_symbol/test_mcu0.exe', 'rb') as f:
     data_set = get_data_type(dwarfinfo, data_set)
     # JSON格式化打印输出
     print(json.dumps(data_set, sort_keys=True, indent=4))
+    dict2json(data_set, 'data.json')
