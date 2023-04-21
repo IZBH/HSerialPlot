@@ -4,3 +4,4 @@ __pycache__
 build
 dist
 trace_read_symbol
+*.elf
